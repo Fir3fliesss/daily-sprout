@@ -1,0 +1,225 @@
+---
+// Single-line Todo Item Component
+interface TodoItemProps {
+  id: string;
+  text: string;
+  type: 'daily' | 'monthly';
+  priority: 'low' | 'medium' | 'high';
+  status: 'active' | 'done';
+  doneDescription?: string;
+  isMonthly?: boolean;
+  showDoneSection?: boolean;
+}
+---
+
+<div class="todo-item neo-box" data-id={id} data-status={status} data-type={type}>
+  <div class="todo-content">
+    <input type="checkbox" class="todo-checkbox" {checked={status === 'done'} ? 'checked' : ''} disabled={isMonthly} />
+
+    <div class="todo-info">
+      <span class="todo-text">{text}</span>
+      <span class="priority-text priority-{priority}">{priority}</span>
+    </div>
+
+    <div class="todo-actions">
+      <button class="action-btn edit-btn" data-id={id} title="Edit">
+        <img src="/edit.svg" alt="Edit" class="action-icon" />
+      </button>
+      <button class="action-btn delete-btn" data-id={id} title="Delete">
+        <img src="/delete.svg" alt="Delete" class="action-icon" />
+      </button>
+    </div>
+  </div>
+
+  {showDoneSection && status === 'active' ? (
+    <div class="done-section">
+      <input type="text" class="neo-input done-description-input" placeholder="How did it go?" />
+      <button class="neo-btn neo-btn-green done-btn">✓ Done</button>
+    </div>
+  ) : null}
+
+  {status === 'done' ? (
+    <div class="done-info">
+      <p><strong>✓ Done:</strong> {doneDescription}</p>
+    </div>
+  ) : null}
+</div>
+
+<style>
+  .todo-item {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+  }
+
+  .todo-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0px 0px var(--black);
+  }
+
+  .todo-item[data-status="done"] {
+    background-color: #f0fdf4;
+  }
+
+  .todo-item[data-status="done"] .todo-text {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .todo-item[data-type="monthly"] {
+    border-color: var(--blue);
+    background-color: #f0f9ff;
+  }
+
+  .todo-item[data-type="daily"] {
+    border-color: var(--green);
+  }
+
+  .todo-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .todo-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--green);
+    flex-shrink: 0;
+  }
+
+  .todo-checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .todo-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .todo-text {
+    font-weight: 600;
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .priority-text {
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .priority-high {
+    color: #dc2626;
+  }
+
+  .priority-medium {
+    color: #d97706;
+  }
+
+  .priority-low {
+    color: #16a34a;
+  }
+
+  .todo-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+  }
+
+  .action-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+
+  .done-section {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+    padding-left: 2.75rem;
+  }
+
+  .done-description-input {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .done-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .done-info {
+    font-size: 0.85rem;
+    color: #555;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: #f0fdf4;
+    border-radius: 4px;
+    padding-left: 2.75rem;
+  }
+
+  @media (max-width: 768px) {
+    .todo-item {
+      padding: 0.6rem 0.75rem;
+    }
+
+    .todo-text {
+      font-size: 0.9rem;
+    }
+
+    .priority-text {
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+    }
+
+    .action-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .done-section {
+      flex-direction: column;
+      align-items: stretch;
+      padding-left: 0;
+    }
+
+    .done-info {
+      padding-left: 0;
+    }
+  }
+</style>

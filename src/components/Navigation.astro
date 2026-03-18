@@ -1,0 +1,111 @@
+---
+// Bottom Navigation Component (Mobile App Style)
+---
+
+<nav class="bottom-nav">
+  <a href="/" class="nav-item" data-page="home">
+    <img src="/home.png" alt="Home" class="nav-icon" />
+    <span class="nav-label">Home</span>
+  </a>
+  <a href="/add-todo" class="nav-item" data-page="add">
+    <img src="/plus.png" alt="Add" class="nav-icon nav-icon-add" />
+    <span class="nav-label">Add</span>
+  </a>
+  <a href="/all-todos" class="nav-item" data-page="list">
+    <img src="/list.png" alt="List" class="nav-icon" />
+    <span class="nav-label">All Tasks</span>
+  </a>
+</nav>
+
+<style>
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.5rem 0;
+    background-color: var(--white);
+    border-top: 3px solid var(--black);
+    box-shadow: 0 -4px 0px 0px var(--black);
+    z-index: 1000;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--black);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    flex: 1;
+    max-width: 120px;
+  }
+
+  .nav-item:hover {
+    background-color: var(--yellow);
+    transform: translateY(-2px);
+  }
+
+  .nav-item:active {
+    transform: translateY(0);
+  }
+
+  .nav-item.active {
+    background-color: var(--blue);
+    color: var(--white);
+  }
+
+  .nav-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    margin-bottom: 0.25rem;
+  }
+
+  .nav-icon-add {
+    width: 36px;
+    height: 36px;
+    background-color: var(--green);
+    border-radius: 50%;
+    padding: 8px;
+    border: 2px solid var(--black);
+    box-shadow: 2px 2px 0px 0px var(--black);
+  }
+
+  .nav-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  @media (min-width: 769px) {
+    .bottom-nav {
+      max-width: 480px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 12px 12px 0 0;
+    }
+  }
+</style>
+
+<script>
+  // Highlight active page
+  const currentPage = window.location.pathname;
+  const navItems = document.querySelectorAll('.nav-item');
+  
+  navItems.forEach(item => {
+    const page = item.getAttribute('data-page');
+    if (page === 'home' && (currentPage === '/' || currentPage === '/index.html')) {
+      item.classList.add('active');
+    } else if (page === 'add' && currentPage.includes('add-todo')) {
+      item.classList.add('active');
+    } else if (page === 'list' && currentPage.includes('all-todos')) {
+      item.classList.add('active');
+    }
+  });
+</script>

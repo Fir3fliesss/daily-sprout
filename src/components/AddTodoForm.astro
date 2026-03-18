@@ -1,0 +1,468 @@
+---
+// Add Todo Form Component
+import { store } from '../store.js';
+import Calendar from './Calendar.astro';
+---
+
+<div id="add-todo-app" class="container">
+  <div class="header">
+    <h1>➕ Add New Task</h1>
+  </div>
+
+  <Calendar />
+
+  <div class="type-selector">
+    <button id="btn-daily" class="type-btn active" data-type="daily">
+      <img src="/list.png" alt="Daily" class="type-icon" />
+      <span>Daily Task</span>
+    </button>
+    <button id="btn-monthly" class="type-btn" data-type="monthly">
+      <img src="/list.png" alt="Monthly" class="type-icon type-icon-monthly" />
+      <span>Monthly Goal</span>
+    </button>
+  </div>
+
+  <div class="form-container neo-box">
+    <form id="todo-form" class="todo-form">
+      <div class="form-group">
+        <label for="todo-text">Task Description</label>
+        <input type="text" id="todo-text" class="neo-input" placeholder="Enter task description..." required />
+      </div>
+
+      <div class="form-group">
+        <label for="todo-date">Date</label>
+        <input type="date" id="todo-date" class="neo-input" required />
+      </div>
+
+      <div class="form-group">
+        <label for="todo-priority">Priority Level</label>
+        <select id="todo-priority" class="neo-select">
+          <option value="high">🔴 High Priority</option>
+          <option value="medium" selected>🟡 Medium Priority</option>
+          <option value="low">🟢 Low Priority</option>
+        </select>
+      </div>
+
+      <div id="monthly-section" class="monthly-section hidden">
+        <div class="monthly-header">
+          <h3>📋 Subtasks for Monthly Goal</h3>
+          <p class="monthly-hint">Add daily tasks that will be tracked for this monthly goal</p>
+        </div>
+        <div id="subtasks-list" class="subtasks-list">
+          <div class="subtask-item">
+            <input type="text" class="neo-input subtask-input" placeholder="Subtask 1" />
+            <button type="button" class="action-btn remove-subtask-btn">
+              <img src="/delete.svg" alt="Remove" class="action-icon" />
+            </button>
+          </div>
+        </div>
+        <button type="button" id="add-subtask-btn" class="neo-btn neo-btn-blue">
+          <img src="/plus.png" alt="Add" class="btn-icon" />
+          <span>Add Subtask</span>
+        </button>
+      </div>
+
+      <button type="submit" class="neo-btn neo-btn-green submit-btn">
+        <img src="/plus.png" alt="Create" class="btn-icon" />
+        <span>Create Task</span>
+      </button>
+    </form>
+  </div>
+
+  <div id="message" class="message hidden"></div>
+</div>
+
+<script>
+  import { store } from '../store.js';
+
+  interface Todo {
+    id: string;
+    text: string;
+    type: 'daily' | 'monthly';
+    date: string;
+    priority: 'low' | 'medium' | 'high';
+    parentId?: string;
+    status: 'active' | 'done';
+    doneDescription?: string;
+  }
+
+  let currentType: 'daily' | 'monthly' = 'daily';
+  let selectedDate = new Date().toISOString().split('T')[0];
+
+  function init() {
+    const btnDaily = document.getElementById('btn-daily') as HTMLButtonElement;
+    const btnMonthly = document.getElementById('btn-monthly') as HTMLButtonElement;
+    const monthlySection = document.getElementById('monthly-section') as HTMLDivElement;
+    const form = document.getElementById('todo-form') as HTMLFormElement;
+    const todoText = document.getElementById('todo-text') as HTMLInputElement;
+    const todoDate = document.getElementById('todo-date') as HTMLInputElement;
+    const todoPriority = document.getElementById('todo-priority') as HTMLSelectElement;
+    const subtasksList = document.getElementById('subtasks-list') as HTMLDivElement;
+    const addSubtaskBtn = document.getElementById('add-subtask-btn') as HTMLButtonElement;
+    const message = document.getElementById('message') as HTMLDivElement;
+
+    // Set default date
+    todoDate.value = selectedDate;
+
+    // Type selection
+    btnDaily.addEventListener('click', () => {
+      currentType = 'daily';
+      btnDaily.classList.add('active');
+      btnMonthly.classList.remove('active');
+      monthlySection.classList.add('hidden');
+    });
+
+    btnMonthly.addEventListener('click', () => {
+      currentType = 'monthly';
+      btnMonthly.classList.add('active');
+      btnDaily.classList.remove('active');
+      monthlySection.classList.remove('hidden');
+    });
+
+    // Add subtask
+    addSubtaskBtn.addEventListener('click', () => {
+      const subtaskCount = subtasksList.children.length + 1;
+      const subtaskDiv = document.createElement('div');
+      subtaskDiv.className = 'subtask-item';
+      subtaskDiv.innerHTML = `
+        <input type="text" class="neo-input subtask-input" placeholder="Subtask ${subtaskCount}" />
+        <button type="button" class="action-btn remove-subtask-btn">
+          <img src="/delete.svg" alt="Remove" class="action-icon" />
+        </button>
+      `;
+      subtasksList.appendChild(subtaskDiv);
+    });
+
+    // Remove subtask
+    subtasksList.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('remove-subtask-btn') || target.closest('.remove-subtask-btn')) {
+        const subtaskItem = target.closest('.subtask-item') as HTMLElement;
+        if (subtasksList.children.length > 1) {
+          subtaskItem.remove();
+        } else {
+          showMessage('At least one subtask is required for monthly goals', 'error');
+        }
+      }
+    });
+
+    // Form submission
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const text = todoText.value.trim();
+      const date = todoDate.value;
+      const priority = todoPriority.value as 'low' | 'medium' | 'high';
+
+      if (!text || !date) {
+        showMessage('Please fill in all required fields', 'error');
+        return;
+      }
+
+      if (currentType === 'monthly') {
+        const subtaskInputs = subtasksList.querySelectorAll('.subtask-input');
+        const subtasks = Array.from(subtaskInputs).map(input => (input as HTMLInputElement).value.trim()).filter(v => v);
+
+        if (subtasks.length === 0) {
+          showMessage('Please add at least one subtask for monthly goals', 'error');
+          return;
+        }
+
+        // Create monthly todo
+        const monthlyTodo = store.addTodo({
+          text,
+          type: 'monthly',
+          date,
+          priority,
+        });
+
+        // Create subtasks
+        subtasks.forEach(subtaskText => {
+          store.addTodo({
+            text: subtaskText,
+            type: 'daily',
+            date,
+            priority,
+            parentId: monthlyTodo.id,
+          });
+        });
+
+        showMessage('Monthly goal created successfully!', 'success');
+      } else {
+        store.addTodo({
+          text,
+          type: 'daily',
+          date,
+          priority,
+        });
+
+        showMessage('Daily task created successfully!', 'success');
+      }
+
+      // Reset form
+      form.reset();
+      todoDate.value = selectedDate;
+      if (currentType === 'monthly') {
+        subtasksList.innerHTML = `
+          <div class="subtask-item">
+            <input type="text" class="neo-input subtask-input" placeholder="Subtask 1" />
+            <button type="button" class="action-btn remove-subtask-btn">
+              <img src="/delete.svg" alt="Remove" class="action-icon" />
+            </button>
+          </div>
+        `;
+      }
+    });
+
+    // Calendar date selection
+    window.addEventListener('calendarDateSelected', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      selectedDate = customEvent.detail.date;
+      todoDate.value = selectedDate;
+    });
+
+    function showMessage(text: string, type: 'success' | 'error') {
+      message.textContent = text;
+      message.className = `message ${type}`;
+      message.classList.remove('hidden');
+
+      setTimeout(() => {
+        message.classList.add('hidden');
+      }, 3000);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+</script>
+
+<style>
+  .container {
+    padding: 0.875rem;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 1.25rem;
+    padding: 0 0.25rem;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+    margin: 0;
+  }
+
+  .type-selector {
+    display: flex;
+    gap: 0.625rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .type-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.875rem;
+    background-color: var(--white);
+    border: var(--border);
+    box-shadow: var(--shadow);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 0.85rem;
+  }
+
+  .type-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0px 0px var(--black);
+  }
+
+  .type-btn.active {
+    background-color: var(--blue);
+    color: var(--white);
+    border-color: var(--black);
+  }
+
+  .type-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+  }
+
+  .type-icon-monthly {
+    filter: hue-rotate(180deg);
+  }
+
+  .form-container {
+    padding: 1rem;
+  }
+
+  .todo-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .form-group label {
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: var(--black);
+  }
+
+  .neo-input,
+  .neo-select {
+    width: 100%;
+    padding: 0.625rem;
+    border: var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    background-color: var(--white);
+    cursor: pointer;
+  }
+
+  .neo-input:focus,
+  .neo-select:focus {
+    background-color: #f7f7f7;
+  }
+
+  .neo-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23111111' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+    padding-right: 2.25rem;
+  }
+
+  .monthly-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    padding: 0.875rem;
+    background-color: #f0f9ff;
+    border: 2px dashed var(--blue);
+    border-radius: 8px;
+  }
+
+  .monthly-header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--blue);
+  }
+
+  .monthly-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #666;
+  }
+
+  .subtasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .subtask-item {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+  }
+
+  .subtask-item .neo-input {
+    flex: 1;
+  }
+
+  .remove-subtask-btn {
+    padding: 0.15rem;
+  }
+
+  .remove-subtask-btn .action-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .submit-btn,
+  #add-subtask-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.625rem;
+    font-size: 0.9rem;
+    margin-top: 0.2rem;
+  }
+
+  .btn-icon {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+  }
+
+  .message {
+    padding: 0.75rem;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: bold;
+    margin-top: 0.875rem;
+    font-size: 0.85rem;
+  }
+
+  .message.success {
+    background-color: #dcfce7;
+    border: 2px solid #22c55e;
+    color: #15803d;
+  }
+
+  .message.error {
+    background-color: #fee2e2;
+    border: 2px solid #ef4444;
+    color: #b91c1c;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (min-width: 769px) {
+    .container {
+      padding: 0;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+    }
+
+    .type-btn {
+      padding: 1.25rem;
+      font-size: 1rem;
+    }
+
+    .type-icon {
+      width: 40px;
+      height: 40px;
+    }
+
+    .form-container {
+      padding: 1.5rem;
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+    }
+  }
+</style>

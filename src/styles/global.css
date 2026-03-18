@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
+
+:root {
+  --bg: #FDFCE3;
+  --yellow: #FACC15;
+  --red: #FF5A5F;
+  --blue: #4CD1E0;
+  --green: #A3E635;
+  --black: #111111;
+  --white: #FFFFFF;
+
+  --border: 3px solid var(--black);
+  --shadow: 4px 4px 0px 0px var(--black);
+  --shadow-hover: 2px 2px 0px 0px var(--black);
+}
+
+body {
+  margin: 0;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--black);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+
+.todo-actions img.action-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* .action-btn img {
+  width: 20px;
+  height: 20px;
+  max-width: none;
+} */
+
+.neo-box {
+  background-color: var(--white);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+}
+
+.neo-btn {
+  background-color: var(--yellow);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  font-family: inherit;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}
+
+.neo-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.neo-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.neo-input {
+  border: var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 0.5rem;
+  font-family: inherit;
+  outline: none;
+  font-size: 1rem;
+}
+.neo-input:focus {
+  background-color: #f7f7f7;
+}
+
+
+.neo-btn-red {
+  background-color: var(--red);
+  color: var(--white);
+}
+
+.neo-btn-blue {
+  background-color: var(--blue);
+}
+
+.neo-btn-green {
+  background-color: var(--green);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  :root {
+    --border: 2px solid var(--black);
+    --shadow: 3px 3px 0px 0px var(--black);
+  }
+  .neo-btn, .neo-input {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+  }
+}

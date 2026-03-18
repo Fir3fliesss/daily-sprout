@@ -1,0 +1,391 @@
+---
+// Home Todo List Component - Shows top 5 daily todos for today
+import { store } from '../store.js';
+import Calendar from './Calendar.astro';
+---
+
+<div id="home-app" class="container">
+  <div class="header">
+    <h1>🌱 DailySprout</h1>
+    <div class="streak neo-box">
+      🔥 <span id="streak-count">0</span>
+    </div>
+  </div>
+
+  <Calendar />
+
+  <div class="today-section">
+    <h2 id="today-header">Today's Tasks</h2>
+    <div id="todo-list" class="todo-list">
+      <!-- Top 5 daily todos will be rendered here -->
+    </div>
+  </div>
+</div>
+
+<script>
+  import { store } from '../store.js';
+
+  interface Todo {
+    id: string;
+    text: string;
+    type: 'daily' | 'monthly';
+    date: string;
+    priority: 'low' | 'medium' | 'high';
+    parentId?: string;
+    status: 'active' | 'done';
+    doneDescription?: string;
+  }
+
+  let selectedDate = new Date().toISOString().split('T')[0];
+
+  function render() {
+    const state = store.getState();
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    // Get all daily todos for selected date (not children of monthly)
+    const allDailyTodos = store.getTodosByDate(selectedDate).filter(t => 
+      t.type === 'daily' && !t.parentId
+    );
+
+    // Sort by priority (high > medium > low) and take top 5
+    const priorityOrder = { high: 1, medium: 2, low: 3 };
+    const topTodos = allDailyTodos
+      .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+      .slice(0, 5);
+
+    const todoList = document.getElementById('todo-list') as HTMLDivElement;
+    const streakCount = document.getElementById('streak-count') as HTMLSpanElement;
+    const todayHeader = document.getElementById('today-header') as HTMLHeadingElement;
+
+    streakCount.textContent = String(state.streak.count);
+
+    if (selectedDate === todayStr) {
+      todayHeader.textContent = "Today's Tasks";
+    } else {
+      todayHeader.textContent = `Tasks for ${selectedDate}`;
+    }
+
+    if (topTodos.length === 0) {
+      todoList.innerHTML = `
+        <div class="empty-state">
+          <p>No tasks for this day.</p>
+          <a href="/add-todo" class="neo-btn neo-btn-green">Add Your First Task</a>
+        </div>
+      `;
+      return;
+    }
+
+    todoList.innerHTML = topTodos.map(todo => `
+      <div class="todo-item neo-box" data-id="${todo.id}" data-status="${todo.status}" data-type="daily">
+        <div class="todo-content">
+          <input type="checkbox" class="todo-checkbox" ${todo.status === 'done' ? 'checked' : ''} />
+          <span class="priority-dot priority-dot-${todo.priority}"></span>
+          <span class="todo-text">${todo.text}</span>
+          <div class="todo-actions">
+            <button class="action-btn edit-btn" data-id="${todo.id}" title="Edit">
+              <img src="/edit.svg" alt="Edit" class="action-icon" />
+            </button>
+            <button class="action-btn delete-btn" data-id="${todo.id}" title="Delete">
+              <img src="/delete.svg" alt="Delete" class="action-icon" />
+            </button>
+          </div>
+        </div>
+        
+        ${todo.status === 'active' ? `
+          <div class="done-section">
+            <input type="text" class="neo-input done-description-input" placeholder="How did it go?" />
+            <button class="neo-btn neo-btn-green done-btn">✓ Done</button>
+          </div>
+        ` : `
+          <div class="done-info">
+            <p><strong>✓ Done:</strong> ${todo.doneDescription}</p>
+          </div>
+        `}
+      </div>
+    `).join('');
+  }
+
+  function handleTodoListClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    const todoItem = target.closest('.todo-item') as HTMLElement;
+    
+    if (!todoItem) return;
+
+    const todoId = todoItem.dataset.id;
+    if (!todoId) return;
+
+    // Handle checkbox
+    if (target.classList.contains('todo-checkbox')) {
+      const checkbox = target as HTMLInputElement;
+      if (checkbox.checked) {
+        const descriptionInput = todoItem.querySelector('.done-description-input') as HTMLInputElement;
+        if (descriptionInput) {
+          descriptionInput.focus();
+        }
+      }
+      return;
+    }
+
+    // Handle delete
+    if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
+      if (confirm('Delete this task?')) {
+        store.deleteTodo(todoId);
+      }
+      return;
+    }
+
+    // Handle edit
+    if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+      const todo = store.getState().todos.find(t => t.id === todoId);
+      if (!todo) return;
+
+      const newText = prompt('Edit task:', todo.text);
+      if (newText && newText.trim()) {
+        store.updateTodo(todoId, { text: newText.trim() });
+      }
+      return;
+    }
+
+    // Handle done
+    if (target.classList.contains('done-btn')) {
+      const descriptionInput = todoItem.querySelector('.done-description-input') as HTMLInputElement;
+      if (!descriptionInput) return;
+
+      const description = descriptionInput.value.trim();
+      if (!description) {
+        alert('Please provide a short description for completing this task.');
+        descriptionInput.focus();
+        return;
+      }
+
+      store.updateTodo(todoId, { status: 'done', doneDescription: description });
+    }
+  }
+
+  function init() {
+    const todoList = document.getElementById('todo-list') as HTMLDivElement;
+
+    render();
+    store.onChange(render);
+    todoList.addEventListener('click', handleTodoListClick);
+
+    // Listen for calendar date selection
+    window.addEventListener('calendarDateSelected', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      selectedDate = customEvent.detail.date;
+      render();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+</script>
+
+<style is:global>
+  .container {
+    padding: 0.875rem;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding: 0 0.25rem;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+    margin: 0;
+  }
+
+  .streak {
+    padding: 0.35rem 0.625rem;
+    font-weight: bold;
+    font-size: 0.85rem;
+  }
+
+  .today-section {
+    margin-bottom: 0.75rem;
+  }
+
+  #today-header {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+    padding: 0 0.25rem;
+    color: var(--black);
+  }
+
+  .todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .todo-item {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    border-color: var(--green);
+  }
+
+  .todo-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0px 0px var(--black);
+  }
+
+  .todo-item[data-status="done"] {
+    background-color: #f0fdf4;
+  }
+
+  .todo-item[data-status="done"] .todo-text {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .todo-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    flex-wrap: nowrap; /* Kunci dalam satu baris */
+  }
+
+  .todo-checkbox {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: var(--green);
+    flex-shrink: 0;
+  }
+
+  /* Priority dot */
+  .priority-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+    margin: 0 0.25rem;
+  }
+
+  .priority-dot-high   { background-color: #dc2626; }
+  .priority-dot-medium { background-color: #d97706; }
+  .priority-dot-low    { background-color: #16a34a; }
+
+  .todo-text {
+    flex: 1;
+    font-weight: 600;
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .todo-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+  }
+
+  .action-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+
+  .done-section {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+    padding-left: 2.75rem;
+  }
+
+  .done-description-input {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .done-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .done-info {
+    font-size: 0.85rem;
+    color: #555;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: #f0fdf4;
+    border-radius: 4px;
+    padding-left: 2.75rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #777;
+  }
+
+  .empty-state p {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  @media (min-width: 769px) {
+    .container {
+      padding: 0;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+    }
+
+    #today-header {
+      font-size: 1.75rem;
+    }
+
+    .todo-text {
+      font-size: 1.1rem;
+    }
+
+    .priority-text {
+      font-size: 0.7rem;
+    }
+
+    .action-icon {
+      width: 22px;
+      height: 22px;
+    }
+  }
+</style>

@@ -1,0 +1,400 @@
+---
+// Todo Item Display Component
+import { store } from '../store.js';
+
+const { todo, isMonthly = false, isDaily = false } = Astro.props;
+const isDone = todo.status === 'done';
+
+let childTodos = [];
+let completedChildren = 0;
+let allSubtasksDone = false;
+
+if (isMonthly) {
+  childTodos = store.getState().todos.filter((t: any) => t.parentId === todo.id);
+  completedChildren = childTodos.filter((t: any) => t.status === 'done').length;
+  allSubtasksDone = childTodos.length > 0 && completedChildren === childTodos.length;
+}
+---
+
+<div class="todo-item neo-box" data-id={todo.id} data-status={todo.status} data-type={todo.type}>
+  <div class="todo-content">
+    <input type="checkbox" class="todo-checkbox" {isMonthly ? 'disabled' : ''} {isDone ? 'checked' : ''} />
+    <span class:list={['priority-dot', `priority-dot-${todo.priority}`]}></span>
+    <span class="todo-text">{todo.text}</span>
+    <div class="todo-actions">
+      <button class="action-btn edit-btn" data-id={todo.id} title="Edit">
+        <img src="/edit.svg" alt="Edit" class="action-icon" />
+      </button>
+      <button class="action-btn delete-btn" data-id={todo.id} title="Delete">
+        <img src="/delete.svg" alt="Delete" class="action-icon" />
+      </button>
+    </div>
+  </div>
+
+  {isMonthly && (
+    <>
+      <div class="monthly-progress">
+        <span>Progress: {completedChildren}/{childTodos.length} subtasks</span>
+        {allSubtasksDone && <span class="monthly-done-indicator">✅ All Subtasks Done!</span>}
+      </div>
+      <div class="subtasks-list">
+        {childTodos.map(child => (
+          <div class="subtask-item" data-status={child.status}>
+            <span class="subtask-status">{child.status === 'done' ? '✅' : '⬜'}</span>
+            <span class="subtask-text">{child.text}</span>
+            {child.status === 'done' && <span class="subtask-done-info">({child.doneDescription})</span>}
+          </div>
+        ))}
+      </div>
+    </>
+  )}
+
+  {isDaily && !isDone && (
+    <div class="done-section">
+      <input type="text" class="neo-input done-description-input" placeholder="How did it go?" />
+      <button class="neo-btn neo-btn-green done-btn">✓ Done</button>
+    </div>
+  )}
+
+  {isDaily && isDone && (
+    <div class="done-info">
+      <p><strong>✓ Done:</strong> {todo.doneDescription}</p>
+    </div>
+  )}
+</div>
+
+<script define:vars={{ todo: todo, isMonthly: isMonthly }}>
+  import { store } from '../store.js';
+
+  const todoItem = document.querySelector(`[data-id="${todo.id}"]`);
+  if (!todoItem) return;
+
+  const checkbox = todoItem.querySelector('.todo-checkbox');
+  const editBtn = todoItem.querySelector('.edit-btn');
+  const deleteBtn = todoItem.querySelector('.delete-btn');
+  const doneBtn = todoItem.querySelector('.done-btn');
+  const doneDescriptionInput = todoItem.querySelector('.done-description-input');
+
+  if (checkbox && !isMonthly) {
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        if (doneDescriptionInput) {
+          (doneDescriptionInput as HTMLInputElement).focus();
+        }
+      }
+    });
+  }
+
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      const newText = prompt('Edit task:', todo.text);
+      if (newText && newText.trim()) {
+        store.updateTodo(todo.id, { text: newText.trim() });
+      }
+    });
+  }
+
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', () => {
+      if (isMonthly) {
+        if (confirm('Delete this monthly goal and all its subtasks?')) {
+          store.deleteTodo(todo.id);
+        }
+      } else {
+        if (confirm('Delete this task?')) {
+          store.deleteTodo(todo.id);
+        }
+      }
+    });
+  }
+
+  if (doneBtn) {
+    doneBtn.addEventListener('click', () => {
+      const description = (doneDescriptionInput as HTMLInputElement)?.value.trim();
+      if (!description) {
+        alert('Please provide a short description for completing this task.');
+        (doneDescriptionInput as HTMLInputElement)?.focus();
+        return;
+      }
+      store.updateTodo(todo.id, { status: 'done', doneDescription: description });
+    });
+  }
+</script>
+
+<style is:global>
+  .container {
+    padding: 0.875rem;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding: 0 0.25rem;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+    margin: 0;
+  }
+
+  .streak {
+    padding: 0.35rem 0.625rem;
+    font-weight: bold;
+    font-size: 0.85rem;
+  }
+
+  .section-header {
+    margin: 1.25rem 0 0.75rem 0;
+    padding-bottom: 0.4rem;
+    border-bottom: 3px solid var(--black);
+  }
+
+  .section-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .monthly-section-header {
+    border-color: var(--blue);
+  }
+
+  .daily-section-header {
+    border-color: var(--green);
+  }
+
+  .todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .todo-item {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .todo-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0px 0px var(--black);
+  }
+
+  .todo-item[data-status="done"] {
+    background-color: #f0fdf4;
+  }
+
+  .todo-item[data-status="done"] .todo-text {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .monthly-todo {
+    border-color: var(--blue);
+    background-color: #f0f9ff;
+  }
+
+  .daily-todo {
+    border-color: var(--green);
+  }
+
+  /* PERBAIKAN UTAMA: Todo content row */
+  .todo-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    flex-wrap: nowrap; /* Mencegah turun ke bawah */
+  }
+
+  /* Checkbox styling */
+  .todo-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--green);
+    flex-shrink: 0;
+    margin: 0; /* Reset default margin */
+  }
+
+  .todo-checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* Priority dot */
+  .priority-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .priority-dot-high   { background-color: #dc2626; }
+  .priority-dot-medium { background-color: #d97706; }
+  .priority-dot-low    { background-color: #16a34a; }
+
+  /* Todo text - flex grow untuk mengisi ruang */
+  .todo-text {
+    flex: 1;
+    font-weight: 600;
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0; /* Penting untuk flex-basis dan text-overflow */
+  }
+
+  /* Action buttons container */
+  .todo-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+    margin-left: auto; /* Mendorong ke kanan */
+  }
+
+  .action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+  }
+
+  .action-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+
+  /* Monthly subtasks */
+  .monthly-progress {
+    font-size: 0.85rem;
+    color: #555;
+    font-weight: 500;
+    padding-left: 2.25rem;
+    margin-top: 0.25rem;
+  }
+
+  .subtasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-left: 2.25rem;
+    margin-top: 0.5rem;
+    border-left: 3px solid var(--blue);
+  }
+
+  .subtask-item {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+
+  .subtask-status {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .subtask-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .subtask-done-info {
+    font-size: 0.8rem;
+    color: #666;
+    font-style: italic;
+    flex-shrink: 0;
+  }
+
+  /* Done section */
+  .done-section {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.25rem;
+    padding-left: 2.25rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .done-description-input {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    min-width: 0; /* Mencegah overflow */
+  }
+
+  .done-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .done-info {
+    font-size: 0.85rem;
+    color: #555;
+    margin-top: 0.25rem;
+    padding: 0.5rem 0.5rem 0.5rem 2.25rem;
+    background-color: #f0fdf4;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #777;
+    font-size: 1rem;
+  }
+
+  /* Debug helper - bisa dihapus nanti */
+  /* .todo-content {
+    border: 1px solid red;
+  } */
+
+  @media (max-width: 768px) {
+    .action-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .todo-content {
+      gap: 0.5rem;
+    }
+
+    .done-section {
+      flex-wrap: wrap;
+    }
+
+    .done-btn {
+      width: 100%;
+    }
+  }
+</style>

@@ -1,0 +1,10 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AllTodosList from '../components/AllTodosList.astro';
+---
+
+<Layout>
+	<main>
+		<AllTodosList client:load />
+	</main>
+</Layout>
