@@ -10,7 +10,8 @@ let completedChildren = 0;
 let allSubtasksDone = false;
 
 if (isMonthly) {
-  childTodos = store.getState().todos.filter((t: any) => t.parentId === todo.id);
+  const state = store.getState() as any;
+  childTodos = state.todos.filter((t: any) => t.parentId === todo.id);
   completedChildren = childTodos.filter((t: any) => t.status === 'done').length;
   allSubtasksDone = childTodos.length > 0 && completedChildren === childTodos.length;
 }

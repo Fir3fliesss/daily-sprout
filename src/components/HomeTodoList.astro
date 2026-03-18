@@ -36,10 +36,18 @@ import Calendar from './Calendar.astro';
     doneDescription?: string;
   }
 
+  interface State {
+    todos: Todo[];
+    streak: {
+      count: number;
+      lastCompletedDate: string | null;
+    };
+  }
+
   let selectedDate = new Date().toISOString().split('T')[0];
 
   function render() {
-    const state = store.getState();
+    const state = store.getState() as State;
     const todayStr = new Date().toISOString().split('T')[0];
     
     // Get all daily todos for selected date (not children of monthly)
@@ -48,9 +56,9 @@ import Calendar from './Calendar.astro';
     );
 
     // Sort by priority (high > medium > low) and take top 5
-    const priorityOrder = { high: 1, medium: 2, low: 3 };
+    const priorityOrder: Record<string, number> = { high: 1, medium: 2, low: 3 };
     const topTodos = allDailyTodos
-      .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+      .sort((a: Todo, b: Todo) => priorityOrder[a.priority] - priorityOrder[b.priority])
       .slice(0, 5);
 
     const todoList = document.getElementById('todo-list') as HTMLDivElement;
@@ -136,7 +144,8 @@ import Calendar from './Calendar.astro';
 
     // Handle edit
     if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
-      const todo = store.getState().todos.find(t => t.id === todoId);
+      const state = store.getState() as State;
+      const todo = state.todos.find((t: Todo) => t.id === todoId);
       if (!todo) return;
 
       const newText = prompt('Edit task:', todo.text);

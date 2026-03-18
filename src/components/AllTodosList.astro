@@ -33,6 +33,14 @@ import Calendar from './Calendar.astro';
     doneDescription?: string;
   }
 
+  interface State {
+    todos: Todo[];
+    streak: {
+      count: number;
+      lastCompletedDate: string | null;
+    };
+  }
+
   let selectedDate = new Date().toISOString().split('T')[0];
 
   // Helper function to generate HTML for a single todo item
@@ -96,8 +104,8 @@ import Calendar from './Calendar.astro';
   };
 
   function render() {
-    const state = store.getState();
-    const todos = store.getTodosByDate(selectedDate);
+    const state = store.getState() as State;
+    const todos = store.getTodosByDate(selectedDate) as Todo[];
 
     const monthlyTodos = todos.filter(t => t.type === 'monthly');
     const dailyTodos = todos.filter(t => t.type === 'daily' && !t.parentId);
@@ -157,7 +165,8 @@ import Calendar from './Calendar.astro';
 
     // Handle delete
     if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
-      const todo = store.getState().todos.find(t => t.id === todoId);
+      const state = store.getState() as State;
+      const todo = state.todos.find((t: Todo) => t.id === todoId);
       if (todo && todo.type === 'monthly') {
         if (confirm('Delete this monthly goal and all its subtasks?')) {
           store.deleteTodo(todoId);
@@ -172,7 +181,8 @@ import Calendar from './Calendar.astro';
 
     // Handle edit
     if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
-      const todo = store.getState().todos.find(t => t.id === todoId);
+      const state = store.getState() as State;
+      const todo = state.todos.find((t: Todo) => t.id === todoId);
       if (!todo) return;
 
       const newText = prompt('Edit task:', todo.text);

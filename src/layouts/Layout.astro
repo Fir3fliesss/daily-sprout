@@ -20,6 +20,9 @@ import Navigation from '../components/Navigation.astro';
 			<main class="main-content">
 				<slot />
 			</main>
+			<footer class="footer">
+				<p>Made with 🌱 by <a href="https://github.com/Fir3fliesss" target="_blank" rel="noopener noreferrer">fireflies05</a></p>
+			</footer>
 		</div>
 	</body>
 </html>
@@ -44,5 +47,22 @@ import Navigation from '../components/Navigation.astro';
 			max-width: 480px;
 			padding: 2rem 1rem 100px 1rem;
 		}
+	}
+
+	.footer {
+		text-align: center;
+		padding: 1.5rem 1rem 6rem 1rem; /* Extra bottom padding for mobile nav */
+		font-size: 0.9rem;
+		font-weight: 500;
+	}
+
+	.footer a {
+		color: var(--black);
+		text-decoration: underline;
+		font-weight: 700;
+	}
+
+	.footer a:hover {
+		color: var(--green);
 	}
 </style>
