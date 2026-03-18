@@ -26,7 +26,9 @@
     "@fullcalendar/core": "^6.1.20",
     "@fullcalendar/daygrid": "^6.1.20",
     "@fullcalendar/interaction": "^6.1.20",
-    "astro": "^6.0.5"
+    "@vite-pwa/astro": "^1.2.0",
+    "astro": "^6.0.5",
+    "workbox-window": "^7.4.0"
   },
   "devDependencies": {
     "@vitest/ui": "^4.1.0",
